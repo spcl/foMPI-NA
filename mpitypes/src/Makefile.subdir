@@ -1,0 +1,15 @@
+# we build the lib here
+mpitypes_sources=
+mpitypes_headers=
+
+
+include src/mpitypes/Makefile.subdir
+include src/dataloop/Makefile.subdir
+
+lib_LIBRARIES += src/libmpitypes.a
+src_libmpitypes_a_SOURCES = $(mpitypes_sources)
+#src_libmpitypes_a_LDFLAGS= -version-info @MPITYPES_VERSION@ \
+#			   -release @MPITYPES_RELEASE@
+include_HEADERS = $(mpitypes_headers)
+
+

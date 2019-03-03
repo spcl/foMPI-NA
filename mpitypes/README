@@ -1,0 +1,22 @@
+MPITypes
+
+MPITypes is an open source, portable library that enables the
+construction of efficient MPI datatype processing routines outside
+the MPI implementation. MPITypes enables programmers who are not
+MPI implementors to create efficient datatype processing routines
+for such purposes as copying data between structures or translating
+data into portable data formats.
+
+For more information on MPITypes and datatype processing, see:
+- R. Ross, "MPITypes: Processing MPI Datatypes Outside MPI,"
+  Presented at EuroPVM/MPI 2009, September 2009.
+  [ included as docs/ross_mpitypes-europvmmpi-2009.pdf ]
+- R. Ross, R. Latham, W. Gropp, E. Lusk, and R. Thakur, "Processing
+  MPI datatypes outside MPI," in Proceedings of EuroPVM/MPI 2009.
+  [ included as docs/ross_mpitypes.pdf ]
+- R. Ross, N. Miller, and W. Gropp, “Implementing fast and reusable
+  datatype processing,” In Proceedings of EuroPVM/MPI 2003.
+  [ included as docs/ross_mpi-datatype-perf.pdf ]
+
+For current releases, additional documentation, etc., see:
+  http://www.mcs.anl.gov/mpitypes

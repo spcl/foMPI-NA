@@ -1,0 +1,20 @@
+% git clone git://git.mcs.anl.gov/mpitypes.git
+
+% cd mpitypes
+% diff configure.ac.old configure.ac
+51c51
+<    BUILD_CC=mpicc
+---
+>    BUILD_CC=cc
+54c54
+< CC=mpicc
+---
+> CC=cc
+
+% ./prepare
+% ./configure --prefix=/u/staff/rgersten/mpi_dmapp_rma/mpitypes/install
+% mkdir install
+% make
+% make install
+% cp mpitypes-config.h install/include
+% cp src/dataloop/dataloop_create.h install/include

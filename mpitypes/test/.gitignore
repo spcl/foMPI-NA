@@ -1,0 +1,17 @@
+*.o
+*.a
+*~
+blockindexed-misc
+darray-memcpy
+simple-types-memcpy
+struct-derived-zeros-nocrash
+struct-empty-el-memcpy
+struct-ezhov
+struct-memcpy
+struct-no-real-types
+struct-verydeep
+struct-zero-count-nocrash
+subarray-memcpy
+transpose-memcpy
+triangular-memcpy
+vector-memcpy

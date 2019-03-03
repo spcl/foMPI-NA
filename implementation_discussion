@@ -1,0 +1,477 @@
+n = number of processes within the window
+
+MPI_Win_create
+==============
+
+* current implementation
+  1. init of the window data structure, involving some local MPI functions and dmapp_register
+  2. MPI_Allgather with n processes to share data to access the window on other processes
+
+  communication: MPI_Allgather
+  memory: O(n)
+
+
+MPI_Win_allocate
+================
+
+* current implementation
+  1. allocates memory if base_ptr != NULL
+  2. calls Win_create
+
+  communication: MPI_Allgather
+  memory: O(n)
+
+* discussion:
+  * use of special memory like the dmapp symmetric heap (sheap descricptor can be obtained through jobinfo)
+    problem with different groups, only possible for MPI_COMM_WORLD, only on JYC it is guaranteed that the addresses are the same on all PEs
+    no need to send segmest descriptor in the Allgather phase, can be replaced in all data structures with symmetric heap descriptor
+    since the window data structures are not that big, I doubt it will make the Allreduce faster
+
+
+MPI_Win_create_dynamic
+======================
+
+* current implementation
+  1. init of the window data structure, involving some local MPI functions and dmapp_register
+  2. MPI_Allgather with n processes to share data to access the window on other processes
+
+  communication: MPI_Allgather
+  memory: O(n)
+
+
+MPI_Win_attach
+==============
+
+* current implementation
+  1. get mutex on local process with busy waiting loop with dmapp_acswap
+  2. create and init data structure for memory regions (involving MPI_Get_address, dmapp_register)
+  3. insert data structure in local list
+  4. increase dynamic counter to signal a change of the memory regions on this process
+  5. release mutex on local process with busy waiting loop with dmapp_acswap
+
+  communication: at least 2x dmapp_acswap on local process, more depending on busy waiting
+  memory: O(1)
+
+
+MPI_Win_detach
+==============
+
+* current implementation
+  1. get mutex on local process with busy waiting loop with dmapp_acswap
+  2. search in list for memory region (involves MPI_Get_address)
+  3. remove data structure for memory region from the local list, delete the structure (involving dmapp_unregister)
+  4. increase dynamic counter to signal a change of the memory regions on this process
+  5. release mutex on local process with busy waiting loop with dmapp_acswap
+
+  communication: at least 2x dmapp_acswap on local process, more depending on busy waiting
+  memory: O(1)
+
+
+MPI_Win_fence
+=============
+
+* current implementation
+  1. dmapp_gsync to wait for the finish of dmapp operations
+  2. MPI_Barrier
+
+  communication: MPI_Barrier
+  memory: O(1)
+
+
+MPI_Win_lock
+============
+
+* current implementation:
+  1. case lock_type:
+    EXCLUSIVE:  2. if process holds no exclusive locks
+                     3. while unfinished:
+                        4. dmapp_afadd on master
+                        5. if no lock_all on master
+                             6. dmapp_acswap on target
+                             7. if acquired
+                                  8. break
+                                else
+                                  8. dmapp_add on master
+                           else
+                             5. dmapp_add on master
+                   else
+                     3. dmapp_acswap until acquired
+
+    SHARED:     2. dmapp_afadd on target
+                3. while exclusive lock on target, dmapp_get
+
+  communication:  EXLCUSIVE: dmapp_afadd + dmapp_acswap in the best case, additionnal x dmapp_acswap + y dmapp_add possible (case first exclusive)
+                             x dmapp_acswap (case already holds exclusive lock, x >= 1)
+                  SHARED: dmapp_afadd + x dmapp_get (x can be zero)
+  memory: O(1)
+
+
+MPI_Win_unlock
+==============
+
+* current implementation:
+  1. MPI_Win_flush
+  2. case lock_type:
+    EXCLUSIVE:  3. dmapp_add on target
+                4. dmapp_add on master, if last exclusive lock this process holds 
+
+    SHARED:     3. dmapp_add on target
+
+  communication: dmapp_add [1-2]
+  memory: O(1)
+
+
+MPI_Win_lock_all
+================
+
+* current implemenation:
+  1. dmapp_afadd on master
+  2. while exclusive lock on master, dmapp_get
+
+  communication: dmapp_afadd + x dmapp_get (x can be zero)
+  memory: O(1)
+
+
+MPI_Win_unlock_all
+==================
+
+* current implementation:
+  1. MPI_Win_flush_all
+  2. dmapp_aadd on master (release)
+
+  communication: dmapp_aadd + overhead from MPI_Win_flush_all
+  memory: O(1)
+
+
+MPI_Win_flush
+=============
+
+* current implementation:
+  1. dmapp_gsync_wait
+  2. check queue for elements with this rank id
+     3. if found, dmapp_syncid_wait (multiple times possible)
+
+  communication: dmapp_gsync_wait + x dmapp_syncid_wait
+  memory: O(1)
+
+
+MPI_Win_flush_local
+===================
+
+* current implementation:
+  1. MPI_Win_flush
+
+
+
+MPI_Win_flush_all
+=================
+
+* current implementation:
+  1. dmapp_gsync_wait
+  2. for every element in the queue, dmapp_syncid_wait (multiple times possible)
+
+  communication: dmapp_gsync_wait + x dmapp_syncid_wait
+  mmeory: O(1)
+
+
+MPI_Win_flush_all_local
+=======================
+
+* current implementation:
+  1. MPI_Win_flush_all
+
+
+MPI_Win_sync
+============
+
+* current implementation:
+  does nothing
+
+
+MPI_Win_start
+=============
+
+* current implementation:
+  1. translation of the access group ranks into ranks of the window communicator
+  2. initialisation
+  3. increment the epoch counter for each rank in access group
+  4. for-loop over all ranks in the access group [blocking Win_start case]
+       wait until process posts a matching MPI_Win_post (local busy waiting)
+
+  communication: no communication
+  
+  memory: O(n)
+
+discussion: bring down the memory size to acess group size?
+
+
+MPI_Win_complete
+================
+
+* current implementation:
+  1. for-loop over all ranks in access group [only in non-blocking Win_start case]
+     2. if not already communicated with that rank, wait until process posts a matching MPI_Win_post (local busy waiting)
+        every process checks before a communication, if he already had communicated with that process during this PSCW epoch, and if not, waits for the matching Win_post
+  3. flush the queue
+  4. for-loop over all ranks in access group
+     5. add to global counter on target (dmapp_aadd), intended to be target completion as well
+
+  communication: sizeof(access group) * dmapp_aadd
+  
+  memory: O(queue length)
+
+
+MPI_Win_post
+============
+
+* current implementation:
+  1. translation of the exposure group ranks into ranks of the window communicator
+  2. initialisation
+  3. increment the epoch counter on each rank in the exposure group (dmapp_aadd)
+
+  communication: sizeof(exposure group) * dmapp_add
+  
+  memory: O(sizeof(exposure group))
+
+
+MPI_Win_wait
+============
+
+* current implementation:
+  1. busy waiting on local counter
+
+  communication: no communication
+
+  memory: O(1)
+
+
+MPI_Win_test
+============
+
+* current implementation:
+  1. test on local counter
+
+  communication: no communication
+
+  memory: O(1)
+
+communication during PSCW is different from the others synchronisations
+instead of nbi functions nb will be used, and we have additionnal overhead for the queuing, but also of keeping track that there aren't too many sync ids in the system
+
+
+MPI_Put
+=======
+
+* current implementation:
+  1. some checking for corner cases (PROC_NULL, target_count or origin_count == 0)
+  2. if PSCW, malloc and init a queue element
+  3. communication_and_datatype_handling( origin_type, target_type ) with simple_put
+
+  communication: x dmapp_put_{nbi,nb}
+  memory: O(1)
+
+MPI_Get
+=======
+
+* current implementation:
+  1. some checking for corner cases (PROC_NULL, target_count or origin_count == 0)
+  2. if PSCW, malloc and init a queue element
+  3. communication_and_datatype_handling( origin_type, target_type ) with simple_get
+
+  communication: x dmapp_get_{nbi,nb}
+  memory: O(1)
+
+MPI_Rput
+========
+
+* current implementation:
+  1. some checking for corner cases (PROC_NULL, target_count or origin_count == 0)
+  2. malloc and init a queue element and request element
+  3. ommunication_and_datatype_handling( origin_type, target_type ) with simple_rput
+
+  communication: x dmapp_get_nb
+  memory: O(x)
+
+MPI_Rget
+========
+
+* current implementation:
+  1. some checking for corner cases (PROC_NULL, target_count or origin_count == 0)
+  2. malloc and init a queue element and request element
+  3. communication_and_datatype_handling( origin_type, target_type ) with simple_rget
+
+  communication: x dmapp_get_nb
+  memory: O(x)
+
+MPI_Accumulate
+==============
+
+* current implementation:
+  1. some checking for corner cases (PROC_NULL, target_count or origin_count == 0)
+  case op:
+    MPI_REPLACE:  2. if PSCW, malloc and init a queue element
+                  3. communication_and_datatype_handling( origin_type, target_type ) with simple_put
+
+    default:      2. basic datatype checking [too much overhead?]
+                  3. if PSCW, wait for MPI_POST (local busy waiting)
+                  4. if (basic_type_size == 8 and op = {BOR, BAND, BXOR})
+                        5. communication_and_datatype_handling( origin_type, target_type) with accumulate_b{and,or,xor}_8byte
+                     else
+                        5. set window mutex (busy waiting with dmapp_acswap)
+                        6. malloc buffer
+                        7. communication_and_datatype_handling( origin_basic_datatype, target_type ) with simple_get_nbi -> contiguous data afterwards
+                        8. dmapp_gsync_wait
+                        9. for each block of (origin_basic_datatype, origin_datatype) apply MPI_OP [for loop]
+                       10. communication_and_datatype_handling( origin_basic_datatype, target_type ) with simple_put_nbi
+                       11. dmapp_gsync_wait
+                       12. release window mutex (dmapp_put)
+                       13. free buffer
+
+  communication: x dmapp_put_{nbi,nb} (MPI_REPLACE)
+                 x dmapp_a{or,and,xor}_nbi (MPI_BOR, MPI_BAND, MPI_BXOR and if basic_type_size equal 8 byte)
+                 x dmapp_acswap + y dmapp_get_nbi + 2 dmapp_gsync_wait + z dmapp_put_nbi
+  memory: O(datasize)
+
+MPI_Get_accumulate
+==================
+
+* current implementation:
+   1. some checking for corner cases (PROC_NULL, target_count or origin_count == 0)
+   2. if PSCW, wait for MPI_POST (local busy waiting)
+   3. set window mutex (busy waiting with dmapp_acswap)
+   4. communication_and_datatype_handling( result_datatype, target_datatype ) with simple_get_nbi
+   5. dmapp_gsync_wait
+   case op:
+     MPI_NO_OP:    6. release window mutex (dmapp_put)
+
+     MPI_REPLACE:  6. communication_and_datatype_handling( origin_type, target_type ) with simple_put_nbi
+                   7. dmapp_gsync_wait
+                   8. release window mutex (dmapp_put)
+
+     default:      6. malloc buffer
+                   7. for each block of (result_datatype, origin_datatype) apply MPI_OP into buffer [for loop]
+                   8. communication_and_datatype_handling( origin_basic_datatype, target_datatype ) with simple_put_nbi
+                   9. dmapp_gsync_wait
+                  10. free buffer
+                  11. release window mutex (dmapp_put)
+
+  communication: x * dmapp_acswap + y * dmapp_get_nbi + z * dmapp_put_nbi + dmapp_put, where z = 0 is possible (for MPI_NO_OP)
+  memory: O(datasize)
+
+
+MPI_Raccumulate
+===============
+
+* current implementation:
+  1. MPI_Accumulate
+  2. malloc and queue element and request element (empty, since the MPI_Accumulate will always be finished)
+  
+
+MPI_Rget_accumulate
+===================
+
+* current implementation:
+  1. MPI_Get_accumulate
+  2. malloc and queue element and request element (empty, since the MPI_Rget_accumulate will always be finished)
+ 
+
+MPI_Fetch_and_op
+================
+
+* current implementation:
+  1. check for corner case ( PROC_NULL )
+  2. if check for every basic datatype
+  3. if dynamic_create_flavor, check for change of memory regions on target, update local informations if necessary [involves communication]
+  4. if PSCW, wait for MPI_Post (local busy waiting)
+  5. set window mutex (busy waiting with dmapp_acswap)
+  6. dmapp_get
+  case op:
+    MPI_NO_OP:    7. release window mutex (dmapp_put)
+
+    MPI_REPLACE:  7. dmapp_put
+                  8. release window mutex (dmapp_put)
+   
+    default:      7. malloc buffer
+                  8. apply MPI_OP into buffer
+                  9. dmapp_put
+                 10. release window mutex (dmapp_put)
+                 11. free buffer
+
+  communication: x * dmapp_acswap + dmapp_get + dmapp_put [1-2]
+  memory: O(datasize)
+
+MPI_Compare_and_swap
+====================
+
+* current implementation:
+  1. check for corner case ( PROC_NULL )
+  2. if check for every basic datatype
+  3. if dynamic_create_flavor, check for change of memory regions on target, update local informations if necessary [involves communication]
+  4. if PSCW, wait for MPI_Post (local busy waiting)
+  case typesize:
+    8:        5. dmapp_acswap
+    default:  5. set window mutex (busy waiting with dmapp_acswap)
+              6. dmapp_get
+              7. if memcmp( compare_addr, result_addr) identical, dmapp_put
+              8. release window mutex (dmapp_put)
+
+  communication: dmapp_acswap, if size = 8 byte
+                 x * dmapp_acswap + dmapp_get + dmapp_put [1-2], if size != 8 byte
+
+
+dynamic window: handling of memory region
+=========================================
+
+* current implementation:
+  1. set the mutex for dynamic memory regions: busy waiting with acswap
+  2. dmapp_get dynamic_id
+  3. has the process the latest list of memory regions?
+     YES: 4. release dynamic mutex (dmapp_put)
+     NO:  5. delete local list of the remote memory regions
+          6. get pointer to first memory region element from the remote process (dmapp_get)
+          7. while next pointer != NULL get next memory region element (dmapp_get)
+          8. release dynamic mutex (dmapp_put)
+
+  communication: x * acswap + dmapp_get + dmapp_get (x>0)
+                 + (number of remote memory region elements+1) * dmapp_get (if local list needs an update)
+  memory: O(sizeof(list))
+
+
+datatype handling
+=================
+
+* current implementation:
+  1. if window_flavor dynamic: get remote memory regions if necessary
+     else /* fast path for MPI_CHAR, only for allocate and normal create */
+       2. direct call to communication handling function
+  2. MPI_Type_size, some typesize checking
+  3. if window_flavor dynamic: check if datatype is within one memory region
+     one region:    4. for every minimal block of the two datatypes call to communication handling function
+     more regions:  5. while not finished
+                       6. get minimal block of the two datatypes
+                       7. while minimal block not finished
+                           8. search for memory region for current element
+                           9. minimum {size of rest minimum block, upper boundary of memory region element}
+                          10. communication handling function with minimum
+
+  communication: depending of communication handling function and update of remote memory regions
+  memory: O(1)
+
+
+communication handling
+======================
+
+* current implementation (simple_put):
+  1. switch sync_type
+       lock/fence:
+         3. dmapp_put_dqw_nbi
+         (4. dmapp_put_byte_nbi)
+       pscw:
+         3. wait for MPI_Post of the target process (if Win_start is non-blocking)
+         4. dmapp_put_dqw_nb and insert in syncid_list of queue element for this MPI operation
+         5. if necessary clear up the queue of syncids
+        (6. dmapp_put_byte_nb and insert in syncid_list of queue element for this MPI operation)
+        (7. if necessary clear up the queue of syncids)
+
+  communication: 1-2 dmapp_put
+  memory: O(1) with a bigger c if PSCW sync

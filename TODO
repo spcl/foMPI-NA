@@ -1,0 +1,113 @@
+Fompi-NA
+
+Add a data structure that keeps track of all the segmments registered to the NIC
+- this feature is useful in case the user sends data from buffers outside the receiving window.
+  uGNI for big transfers (BTE, and every remote read) needs the buffer to be exposed over the network.
+  this datastructure would be able to avoid to register a segment to the nic if it's already registered.
+  fompi_seg.c
+  
+Modify the implementation of foMPI_requests.
+- each request object contains pointers to functions that have to be executed during MPI_TEST or MPI_WAIT
+  Since these request objects can be classified, and each class of requests has a specific set of functions to be executed
+  these functions can be collected in a global table and addressed by index (the class type of the request)
+  
+Inline transfer of the notification has to be debugged and/or restructured. 
+- It creates some semantics problems with fences. 
+  (data is available at destination but not in right position. a fence does not synchronize anymore)
+
+===============================
+
+MPI_Win_allocate_shared
+MPI_Win_shared_query
+MPI_Win_get_attr
+MPI_Win_set_attr
+MPI_Win_delete_attr
+MPI_Win_set_errhandler
+MPI_Win_call_errhandler
+MPI_Win_set_info
+MPI_Win_get_info
+
+MPI_Waitany
+MPI_Waitall
+
+PSCW: Should there be a calling order?
+Locks: build in a LIFO way?
+       What to do in case of the unlockall: holds the caller no lock afterward?
+
+accumulate -> worklist, lockfree mit fetch-and-add mit pointern (problem: multiple accumulate with get_accumulate, how to manage the memory for data to put? -> origin_process blocks in the closure of the acces epoch)
+           -> datentyp und operation passt: dmapp_atomics nutzen
+
+* complete cleanup in myMPI_Finalize
+* rma operation: size checking in the create/allocate case
+* put/get: do the dmapp operation with the ideal target block sizes?
+* flatten_datatype in commit? (with a order index, and a memory index)
+  with memory index one could find addtional block boundaries in O(log(n)) instead of O(n)
+* lockall with a separate lock on leader process
+* allocate with shared heap in case of comm_world:
+  * problematic if not all the processes have the same size and disp unit
+  * also the "non"-collective implementation may break some code: e.g. acquire a lock on a process that didn't yet called Win_allocate
+* attach/detach: btree/index
+* dynamic: find contiguous memory regions
+* fast dmapp operations for accumulate (SUM)
+* allocate*/fetch_and_op/swap: lock sync: only window mutex if shared
+* datatype handling (test for contiguous datatype, fast path for other intrinsic datatypes beside MPI_CHAR) 
+* PSCW: exposure_matching array with only a size of access group
+
+* table with memory and runtime estimation of the all functions
+
+tests:
+* test_mpich2-1.5b2/wincall.c
+* test_mpich2-1.5b2/winname.c
+* test_mpich2-1.5b2/putfence1.c
+* test_mpich2-1.5b2/putfidx.c
+* test_mpich2-1.5b2/rmanull.c
+* test_mpich2-1.5b2/getfence1.c
+* test_mpich2-1.5b2/fkeyvalwin.c
+* test_mpich2-1.5b2/epochtest.c
+* test_mpich2-1.5b2/contig_displ.c
+* test_mpich2-1.5b2/baseattrwin.c
+* test_mpich2-1.5b2/attrorderwin.c
+* test_mpich2-1.5b2/adlb_mimic1.c
+* test_mpich2-1.5b2/accfence1.c 
+* test_mpich2-1.5b2/accpscw1.c
+* test_mpich-3.0rc1/req_example.c - missing myMPI_Waitall and myMPI_Waitany implementation
+* test_mpich-3.0rc1/strided_getacc_indexed.c - unpatched MTest_*
+* test_mpich-3.0rc1/strided_getacc_indexed_shared.c - shared memory window
+* test_mpich-3.0rc1/strided_putget_indexed_shared.c - shared memory window
+* test_mpich-3.0rc1/win_flavors.c - missing myMPI_Win_get_attr implementation
+* test_mpich-3.0rc1/win_info.c - missing myMPI_Win_set_info and myMPI_Win_get_info implementation
+* test_mpich-3.0rc1/win_shared.c - missing myMPI_Win_allocate_shared and myMPI_Win_shared_query implementation
+* test_mpich-3.0rc1/win_shared_noncontig.c - missing myMPI_Win_allocate_shared and myMPI_Win_shared_query implementation
+* test_mpich-3.0rc1/win_shared_noncontig_put.c - missing myMPI_Win_allocate_shared and myMPI_Win_shared_query implementation
+
+standard:
+* clarification that a shared lock allows all types (including put, accumulate, rput, raccumulate) of communication operations
+
+==============================================================================================================================================
+
+bugs in mpich2-1.5b2 tests:
+* accfence2.c: variable datatype was set but not used
+               variable dest was set but not used
+* accfence2_am.c: variable datatype was set but not used
+                  variable dest was set but not used
+* lockopts.c: tests could possibly overlap
+* lockcontention3.c: * missing #include <string.h> for strcmp
+                     * window size is too small (2048), offsets in test fourteen: {157, 411, 665, 919} * disp_unit = { 628, 1644, 2660, 3676 }
+                       window size should probably be 2048 * disp_unit (at least it is the size of the allocated buffer)
+                     * case 6, RMACheck, line 322: (j=0;j++;j<veccount) instead of (j=0; j<veccount;j++), also OFFSET_1 is missing in buffer addressing
+                     * case 7, RMACheck, line 332: (j=0;j++;j<veccount) instead of (j=0; j<veccount;j++), also OFFSET_2 is missing in buffer addressing
+                     * case 9, RMACheck, line 348: too many parameters for printf, should be printf( "case 9: value is %d should be %d\n", buf[OFFSET_1+j], j );
+                     * case 11, RMACheckGet, line 447: too many parameters for printf, should be printf( "case 11: value is %d should be %d\n", getbuf[j], OFFSET_3 + j );
+* mtest.c: in function MTestPrintfMsg: variable n was set but not used
+* put_base.c: missing #include "mpitest.h"
+* put_bottom.c: missing #include "mpitest.h"
+
+bus in mpich-3.0rc1 tests:
+* compare_and_swap.c: unused variable j
+* linked_list_fop.c: unused variable junk
+* win_dynamic_acc.c: Win_attach attaches the wrong memory region (Get_address for val, Win_attach for one) -> Win_attach with val, test works
+                     unused variable j
+
+bugs in mpitypes:
+* mpitypes_dataloop.h:15 #include "mpitypes-config.h" -> mpitypes-config.h is missing, resides in the main directory
+* mpitypes_dataloop.h:109:#include "./dataloop_create.h" -> dataloop_create.h is missing, resides in src/dataloop/

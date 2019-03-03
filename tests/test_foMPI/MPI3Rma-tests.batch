@@ -1,0 +1,10 @@
+#!/bin/bash -l
+#SBATCH --job-name=MPI3Rma_test
+#SBATCH --output=jobID-%j-MPI3Rma_test.out
+#SBATCH --error=jobID-%j-MPI3Rma_test.err
+#SBATCH --ntasks=4
+#SBATCH --ntasks-per-node=1
+#SBATCH --time=00:10:00
+export _DMAPP_DLA_PURE_DMAPP_JOB=0
+aprun -n 4 -N 1 ./main
+#aprun -n 2 -N 1  valgrind --leak-check=yes ./c_test

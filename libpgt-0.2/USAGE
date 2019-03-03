@@ -1,0 +1,114 @@
+ LibPGT is a library for instrumenting applications easily to enable
+coarse-grained profiling for performance modeling.
+
+In the LibPGT philosophy, an execution of a code is separated into
+epochs. An epoch is a part of the execution that is benchmarked (time as
+well as performance counters). 
+
+LibPGT can record up to two (compatible) PAPI counters. The two PAPI
+counters to record can be defined with the environment variables
+PGT_PAPI1 and PGT_PAPI2. 
+
+Library Interface
+-----------------
+
+The LibPGT library offers the following calls:
+
+* void PGT_Init(const char *projname, int autoprof_interval)
+* call PGT_Init(character projname, int length_of_projname, int autoprof_interval)
+
+This is an initialization function to be called exactly once per
+application run. This needs to be called before any other PGT function
+is called. The first argument specifies a string used for the output
+files. The autoprof interval is typically 0, if it is x!=0 then the
+library will set a timer that calls it back every x milliseconds. The
+library records the time and specified PAPI counters at each callback.
+
+* void PGT_Finalize()
+* call PGT_Finalize()
+
+This finishes a PGT trace (and writes the output files). It must be
+calld after all other PGT functions have been called. 
+
+* void PGT_Reg_param(const char *format, ...)
+* call PGT_Reg_param_int(character parname, int length_of_parname, int parvalue)
+
+This registers an application parameter which is printed into the output
+file. This is mainly used for modeling tools to parametrize parametrized
+models across multiple invocations.
+
+* void PGT_Rec(unsigned int id)
+* call PGT_Rec(int id)
+
+This ends the currently active epoch and starts a new one. The call
+writes a record (time and PAPI counters) into the trace. The passed
+integer is used as an identifier for the code region for which it ends
+the epoch.
+
+* void PGT_Res()
+* call PGT_Res()
+
+This function ends the current epoch and starts a new one but doscards
+the counter values (does not write them to the ouput file).
+
+* void PGT_Rec_ints(unsigned int id, int int1, int int2)
+* call PGT_Rec_ints(int id, int int1, int int2)
+
+This call records two integers into the trace. The id is used to
+identify the record point. This function can be used to record message
+counts, destinations, or message volumes for performance modeling
+puposes.
+
+* void PGT_Rec_disable() and void PGT_Rec_enable()
+* call PGT_Rec_disable() and void PGT_Rec_enable()
+
+This calls disable or enable PGT recording. All PGT_Rec_* calls will not
+record the values of PGT recording is disabled. PGT recording is enabled
+by default after PGT_Init(). This can be used to disable recording of
+warmup phases or similar not-relevant parts of a run.
+
+* void PGT_Flush()
+* call PGT_Flush()
+
+This function ends the current epoch and writes a full checkpoint into
+the output files. This can be used if algorithm parameters change. You
+probably don't want to use this function :-).
+
+Environment Control Variables
+-----------------------------
+
+The dynamic behavior of PGT is controlled through environment variables. 
+We will provide a list in the following.
+
+PGT_OUTFILE - specifies the name of the poutput files. It will always be 
+prefixed with pgt. and postfixed with the MPI rank (if compiled with MPI 
+support) and a version number (if the file existed at startup).
+
+PGT_ENABLE_PROCMASK - specifies the processes that should enable PGT as
+a comma-separated list (starting from 0). If this flag is set, then all
+other processes disable PGT completely. This can be used to disable PGT
+completely by setting it to -1 or an invalid rank.
+
+PGT_OUTPUT_FORMAT - specifies the output format. Currently, the
+following formats are supported:
+ - pretty (default) - prints nicely aligned lists
+ - efficient - prints machine (R-) readable format
+ - accumulated - prints only on rank 0, accumulates all information
+   across other ranks in MPI_COMM_WORLD as min, med, max, stddev. When
+   specifying this option, the user *MUST* ensure that all processes in
+   MPI_COMM_WORLD have the same number and order of recorded events!!
+   Integer and floating point events are not accumulated yet but only
+   printed from rank 0 (can be implemented)!
+
+Known Issues
+------------
+
+The autoprof feature will call malloc in signal handlers and this is not
+safe. It was observed that code may hang or corrupt memory when the
+signal handler is executed while libc malloc (which is not reentrant) is
+interrupted. This is *very* unlikely for traditional codes in C and
+Fortran since they rarely call malloc, however, it is *very* likely for
+C++ template-based codes. Thus, use autoprof with care! A possible
+workaround is to reduce/avoid malloc calls during profiling by
+preallocating a large records array, use the environment variable
+PGT_AUTOPROF_WORKAROUND=<int> to set the number of preallocated records.

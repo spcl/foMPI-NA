@@ -1,0 +1,10 @@
+#!/bin/bash -l
+#ifdef UGNI#SBATCH --job-name=foMPI-NA-XPMEM-Test
+#SBATCH --output=jobID-%j-foMPI-NA-XPMEM_test.out
+#SBATCH --error=jobID-%j-foMPI-NA-XPMEM_test.err
+#SBATCH --ntasks=4
+#SBATCH --ntasks-per-node=4
+#SBATCH --time=00:10:00
+export _DMAPP_DLA_PURE_DMAPP_JOB=0
+aprun -n 4 -N 4 ./main
+#aprun -n 2 -N 1  valgrind --leak-check=yes ./c_test

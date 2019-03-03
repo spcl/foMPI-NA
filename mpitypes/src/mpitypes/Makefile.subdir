@@ -1,0 +1,10 @@
+mpitypes_sources += \
+src/mpitypes/mpitypes.c\
+src/mpitypes/mpitypes.h\
+src/mpitypes/mpitypes_dataloop.c\
+src/mpitypes/mpitypes_dataloop.h\
+src/mpitypes/mpitypes_transpack_flatten.c
+
+mpitypes_headers += src/mpitypes/mpitypes.h \
+		    src/mpitypes/mpitypes_dataloop.h
+

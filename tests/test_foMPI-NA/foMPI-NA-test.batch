@@ -1,0 +1,13 @@
+#!/bin/bash -l
+#SBATCH --job-name=foMPI-NA-Test
+#SBATCH --output=jobID-%j-foMPI-NA_test.out
+#SBATCH --error=jobID-%j-foMPI-NA_test.err
+#SBATCH --ntasks=32
+#SBATCH --ntasks-per-node=8
+#SBATCH --time=00:10:00
+
+aprun -n 32 -N 8 ./main
+
+export _DMAPP_DLA_PURE_DMAPP_JOB=0
+aprun -n 32 -N 8 ./main
+#aprun -n 2 -N 1  valgrind --leak-check=yes ./c_test

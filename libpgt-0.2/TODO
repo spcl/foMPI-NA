@@ -1,0 +1,21 @@
+AUTOMATIC REGISTRATION AT STARTUP:
+
+  static void psrun_init PARAMS((void)) __attribute__((constructor));             
+                                                                                  
+  #if HAVE_ON_EXIT                                                                
+  static void psrun_fini PARAMS((int status, void *arg));                         
+  #elif HAVE_ATEXIT                                                               
+  static void psrun_fini PARAMS((void));                                          
+  #else                                                                           
+  static void psrun_fini PARAMS((void)) __attribute__((destructor));              
+  #endif                                                                          
+
+
+hrtimer:
+
+	- we should add another hrtimer which uses gettimeofday, so that the stuff works even
+      on our laptops (tsc b0rked) without mpi
+
+	- we should add a benchmark that measures the overhead for each timer and select the
+      fastest/most accurate one available
+

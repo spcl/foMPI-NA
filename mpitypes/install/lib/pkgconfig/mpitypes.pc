@@ -1,0 +1,11 @@
+prefix=/users/bellir/spclWorkspace/foMPI-NA/mpitypes/install
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: mpitypes
+Description: MPI library for datatype manipulation.
+#Requires: 
+Version: 0.0.3
+Libs: -L${libdir} -lmpitypes 
+Cflags: -I${includedir}

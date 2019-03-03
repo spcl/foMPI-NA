@@ -1,0 +1,19 @@
+0.2.3
+*added additional functionallity to the fortran warpper
+*fixed problem with the node local notification matching
+*return number of matched notifications using MPI_Status_set_elements
+*fixed gcc5 compatibility problem 
+*removed starvation hack
+
+0.2.2
+*added UGNI and XPMEM support for RMA notifications.
+*main calls introduced: foMPI_Put_notify, foMPI_Get_notify, foMPI_Notify_init
+
+0.2.1
+* removed autoconf dependency for libtopodisc to allow an easier built (proposal by Timo Schneider)
+* fixed problem with compiling the Fortran foMPI_Win_allocate interface with the Intel compiler
+* fixed problem with Fortran window and request book keeping
+* extended testing with Intel compiler
+
+0.2.0
+* added Fortran interface

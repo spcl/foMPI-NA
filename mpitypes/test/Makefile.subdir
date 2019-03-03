@@ -1,0 +1,111 @@
+testlibs = -lmpitypes
+testldflags = -L${top_builddir}/src
+
+TESTS += test/simple-types-memcpy
+check_PROGRAMS += test/simple-types-memcpy
+test_simple_types_memcpy_SOURCES = test/simple-types-memcpy.c
+test_simple_types_memcpy_LDADD = $(testlibs)
+test_simple_types_memcpy_LDFLAGS = $(testldflags)
+
+TESTS += test/vector-memcpy
+check_PROGRAMS += test/vector-memcpy
+test_vector_memcpy_SOURCES = test/vector-memcpy.c
+test_vector_memcpy_LDADD = $(testlibs)
+test_vector_memcpy_LDFLAGS = $(testldflags)
+
+TESTS += test/struct-memcpy
+check_PROGRAMS += test/struct-memcpy
+test_struct_memcpy_SOURCES = test/struct-memcpy.c
+test_struct_memcpy_LDADD = $(testlibs)
+test_struct_memcpy_LDFLAGS = $(testldflags)
+
+TESTS += test/darray-memcpy
+check_PROGRAMS += test/darray-memcpy
+test_darray_memcpy_SOURCES = test/darray-memcpy.c
+test_darray_memcpy_LDADD = $(testlibs)
+test_darray_memcpy_LDFLAGS = $(testldflags)
+
+TESTS += test/darray-memcpy-flat
+check_PROGRAMS += test/darray-memcpy-flat
+test_darray_memcpy_flat_SOURCES = test/darray-memcpy-flat.c
+test_darray_memcpy_flat_LDADD = $(testlibs)
+test_darray_memcpy_flat_LDFLAGS = $(testldflags)
+
+TESTS += test/subarray-memcpy
+check_PROGRAMS += test/subarray-memcpy
+test_subarray_memcpy_SOURCES = test/subarray-memcpy.c
+test_subarray_memcpy_LDADD = $(testlibs)
+test_subarray_memcpy_LDFLAGS = $(testldflags)
+
+TESTS += test/subarray-memcpy-flat
+check_PROGRAMS += test/subarray-memcpy-flat
+test_subarray_memcpy_flat_SOURCES = test/subarray-memcpy-flat.c
+test_subarray_memcpy_flat_LDADD = $(testlibs)
+test_subarray_memcpy_flat_LDFLAGS = $(testldflags)
+
+TESTS += test/triangular-memcpy
+check_PROGRAMS += test/triangular-memcpy
+test_triangular_memcpy_SOURCES = test/triangular-memcpy.c
+test_triangular_memcpy_LDADD = $(testlibs)
+test_triangular_memcpy_LDFLAGS = $(testldflags)
+
+TESTS += test/triangular-memcpy-flat
+check_PROGRAMS += test/triangular-memcpy-flat
+test_triangular_memcpy_flat_SOURCES = test/triangular-memcpy-flat.c
+test_triangular_memcpy_flat_LDADD = $(testlibs)
+test_triangular_memcpy_flat_LDFLAGS = $(testldflags)
+
+TESTS += test/transpose-memcpy
+check_PROGRAMS += test/transpose-memcpy
+test_transpose_memcpy_SOURCES = test/transpose-memcpy.c
+test_transpose_memcpy_LDADD = $(testlibs)
+test_transpose_memcpy_LDFLAGS = $(testldflags)
+
+TESTS += test/blockindexed-misc-flat
+check_PROGRAMS += test/blockindexed-misc-flat
+test_blockindexed_misc_flat_SOURCES = test/blockindexed-misc-flat.c
+test_blockindexed_misc_flat_LDADD = $(testlibs)
+test_blockindexed_misc_flat_LDFLAGS = $(testldflags)
+
+TESTS += test/blockindexed-misc
+check_PROGRAMS += test/blockindexed-misc
+test_blockindexed_misc_SOURCES = test/blockindexed-misc.c
+test_blockindexed_misc_LDADD = $(testlibs)
+test_blockindexed_misc_LDFLAGS = $(testldflags)
+
+TESTS += test/struct-empty-el-memcpy
+check_PROGRAMS += test/struct-empty-el-memcpy
+test_struct_empty_el_memcpy_SOURCES = test/struct-empty-el-memcpy.c
+test_struct_empty_el_memcpy_LDADD = $(testlibs)
+test_struct_empty_el_memcpy_LDFLAGS = $(testldflags)
+
+TESTS += test/struct-ezhov
+check_PROGRAMS += test/struct-ezhov
+test_struct_ezhov_SOURCES = test/struct-ezhov.c
+test_struct_ezhov_LDADD = $(testlibs)
+test_struct_ezhov_LDFLAGS = $(testldflags)
+
+TESTS += test/struct-no-real-types
+check_PROGRAMS += test/struct-no-real-types
+test_struct_no_real_types_SOURCES = test/struct-no-real-types.c
+test_struct_no_real_types_LDADD = $(testlibs)
+test_struct_no_real_types_LDFLAGS = $(testldflags)
+
+TESTS += test/struct-verydeep
+check_PROGRAMS += test/struct-verydeep
+test_struct_verydeep_SOURCES = test/struct-verydeep.c
+test_struct_verydeep_LDADD = $(testlibs)
+test_struct_verydeep_LDFLAGS = $(testldflags)
+
+TESTS += test/struct-zero-count-nocrash
+check_PROGRAMS += test/struct-zero-count-nocrash
+test_struct_zero_count_nocrash_SOURCES = test/struct-zero-count-nocrash.c
+test_struct_zero_count_nocrash_LDADD = $(testlibs)
+test_struct_zero_count_nocrash_LDFLAGS = $(testldflags)
+
+TESTS += test/struct-derived-zeros-nocrash
+check_PROGRAMS += test/struct-derived-zeros-nocrash
+test_struct_derived_zeros_nocrash_SOURCES = test/struct-derived-zeros-nocrash.c
+test_struct_derived_zeros_nocrash_LDADD = $(testlibs)
+test_struct_derived_zeros_nocrash_LDFLAGS = $(testldflags)
+

@@ -1,0 +1,11 @@
+Installation
+=============
+
+./configure
+make
+make install
+
+You can supply some options to the configure script:
+--with-mpi
+--with-papi
+

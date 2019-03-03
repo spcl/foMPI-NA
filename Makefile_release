@@ -1,0 +1,154 @@
+include Makefile.inc
+
+# relevant for building foMPI and self written tests
+# -DNOTIFIED_ACCESS_SUPPORT enables the notified access module
+# -DSHARED_MEMORY_SUPPORT enables the shared memory modul for on-node processes
+# -DNDEBUG disables some checks and log messages
+FOMPIOPTS=  -DNDEBUG -DNOTIFIED_ACCESS_SUPPORT -DSHARED_MEMORY_SUPPORT
+
+
+LIBS=-L. -lfompi -ldmapp 
+INC=-Impitypes/install/include -Ilibtopodisc
+
+CCFLAGS+=$(FOMPIOPTS) $(INC)
+FCFLAGS+=$(FOMPIOPTS) $(INC)
+CXXFLAGS+=$(FOMPIOPTS) $(INC)
+
+OBJS = \
+	fompi_fortran.o \
+	fompi_helper.o \
+	fompi_op.o \
+	fompi_overloaded.o \
+	fompi_win_allocate.o \
+	fompi_win_attr.o \
+	fompi_win_create.o \
+	fompi_win_dynamic_create.o \
+	fompi_win_fence.o \
+	fompi_win_free.o \
+	fompi_win_group.o \
+	fompi_win_lock.o \
+	fompi_win_name.o \
+	fompi_win_pscw.o \
+	fompi_win_rma.o \
+	module_fompi.o \
+	fompi_comm.o \
+	module_fompi.o \
+	fompi_req.o \
+	fompi_notif.o \
+	fompi_seg.o \
+	fompi_notif_uq.o \
+	fompi_notif_xpmem.o  
+
+EXE = \
+	c_test_NA \
+	c_test \
+	fortran_test_f77 \
+	fortran_test_f90
+
+# some general rules
+all: libfompi.a $(EXE)
+
+clean:
+	rm -f *.o fompi_op.c libfompi.a $(EXE)
+	echo "invoke make recursive-clean if you want to clean tests and sub-libraries"
+
+recursive-clean: clean
+	make -C mpitypes clean
+	rm -f mpitypes/install/lib/libmpitypes.a
+	make -C libtopodisc clean
+
+distclean: clean 
+	rm -rf mpitypes
+	make -C libtopodisc clean
+
+libfompi.a: $(OBJS) libtopodisc/findcliques.o libtopodisc/meshmap2d.o libtopodisc/libtopodisc.o mpitypes/install/lib/libmpitypes.a
+	cp mpitypes/install/lib/libmpitypes.a libfompi.a
+	ar -r libfompi.a $(OBJS) libtopodisc/findcliques.o libtopodisc/meshmap2d.o libtopodisc/libtopodisc.o
+	ranlib libfompi.a
+
+c_test: c_test.o libfompi.a
+	${CC} ${CCFLAGS} ${LDFLAGS} -o $@ c_test.o ${LIBS}
+
+c_test_NA: c_test_NA.o libfompi.a
+	${CC} ${CCFLAGS} ${LDFLAGS} -o $@ c_test_NA.o ${LIBS}
+
+fortran_test_f77: fortran_test_f77.o libfompi.a
+	${FC} ${FCFLAGS} ${LDFLAGS} -o $@ fortran_test_f77.o ${LIBS}
+
+fortran_test_f90: fortran_test_f90.o libfompi.a
+	${FC} ${FCFLAGS} ${LDFLAGS} -o $@ fortran_test_f90.o ${LIBS}
+
+fompi_fortran.o: fompi.h
+
+fompi_helper.o: fompi_helper.c fompi.h
+
+fompi_op.o: fompi_op.c fompi.h
+fompi_op.c: fompi_op.c.m4
+	m4 fompi_op.c.m4 > fompi_op.c
+
+fompi_overloaded.o: fompi_overloaded.c fompi.h libtopodisc/libtopodisc.h
+
+fompi_win_allocate.o: fompi_win_allocate.c fompi.h
+
+fompi_win_attr.o: fompi_win_attr.c fompi.h
+
+fompi_win_create.o: fompi_win_create.c fompi.h
+
+fompi_win_dynamic_create.o: fompi_win_dynamic_create.c fompi.h
+
+fompi_win_fence.o: fompi_win_fence.c fompi.h
+
+fompi_win_free.o: fompi_win_free.c fompi.h
+
+fompi_win_group.o: fompi_win_group.c fompi.h
+
+fompi_win_lock.o: fompi_win_lock.c fompi.h
+
+fompi_win_name.o: fompi_win_name.c fompi.h
+
+fompi_win_pscw.o: fompi_win_pscw.c fompi.h
+
+fompi_win_rma.o: fompi_win_rma.c fompi.h mpitypes/install/include/mpitypes.h mpitypes/install/lib/libmpitypes.a
+
+fompi_req.o: fompi_req.c fompi.h
+
+fompi_comm.o: fompi_comm.c fompi.h
+
+fompi_notif.o: fompi_notif.c fompi.h
+
+fompi_notif_uq.o: fompi_notif_uq.c  fompi_notif_uq.h fompi.h
+
+fompi_notif_xpmem.o: fompi_notif_xpmem.c fompi.h
+
+fompi_seg.o: fompi_seg.c fompi.h
+
+fompi.h: fompi_internal.h fompi_internal_ex.h ugni_config.h xpmem_config.h
+
+fompi.mod module_fompi.o: module_fompi.f90
+	$(FC) $(FCFLAGS) $(INC) -c $<
+
+# target to build mpitypes with a separate compiler
+mpitypes: mpitypes/install/include/mpitypes.h mpitypes/install/lib/libmpitypes.a
+
+mpitypes/install/include/mpitypes.h mpitypes/install/lib/libmpitypes.a: mpitypes.tar.bz2
+	tar xfj mpitypes.tar.bz2
+	find mpitypes/configure.ac -type f -print0 | xargs -0 sed -i 's/mpicc/$(cc)/g'
+	cd mpitypes ; \
+	./prepare ; \
+	./configure --prefix=$(CURDIR)/mpitypes/install
+	make -C mpitypes
+	make -C mpitypes install
+	cp mpitypes/mpitypes-config.h mpitypes/install/include
+	cp mpitypes/src/dataloop/dataloop_create.h mpitypes/install/include
+
+# target to build mpitypes with a separate compiler
+libtopodisc: libtopodisc/findcliques.o libtopodisc/meshmap2d.o libtopodisc/libtopodisc.o
+
+libtopodisc/findcliques.o: libtopodisc/findcliques.c
+	make -C libtopodisc findcliques.o
+
+libtopodisc/meshmap2d.o: libtopodisc/meshmap2d.c
+	make -C libtopodisc meshmap2d.o
+
+libtopodisc/libtopodisc.o: libtopodisc/libtopodisc.c
+	make -C libtopodisc libtopodisc.o

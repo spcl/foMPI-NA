@@ -1,0 +1,24 @@
+mpitypes_sources += \
+src/dataloop/contents_support.c\
+src/dataloop/darray_support.c\
+src/dataloop/dataloop.c\
+src/dataloop/dataloop.h\
+src/dataloop/dataloop_create.c\
+src/dataloop/dataloop_create.h\
+src/dataloop/dataloop_create_blockindexed.c\
+src/dataloop/dataloop_create_contig.c\
+src/dataloop/dataloop_create_indexed.c\
+src/dataloop/dataloop_create_pairtype.c\
+src/dataloop/dataloop_create_struct.c\
+src/dataloop/dataloop_create_vector.c\
+src/dataloop/dataloop_parts.h\
+src/dataloop/segment.c\
+src/dataloop/segment_count.c\
+src/dataloop/segment_flatten.c\
+src/dataloop/segment_packunpack.c\
+src/dataloop/subarray_support.c\
+src/dataloop/typesize_support.c\
+src/dataloop/typesize_support.h
+
+mpitypes_headers += src/dataloop/dataloop_parts.h
+
