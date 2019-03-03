@@ -1,7 +1,7 @@
 include Makefile.inc
 
 LIBS=-L. -lfompi -ldmapp
-INC=-Impitypes/install/include -Ilibtopodisc 
+INC=-Impitypes/install/include -Ilibtopodisc
 
 
 CCFLAGS+=$(FOMPIOPTS) $(INC)

@@ -1,4 +1,4 @@
-prefix=/users/bellir/spclWorkspace/foMPI-NA/mpitypes/install
+prefix=/global/u2/s/salvodg/github/foMPI-NA/mpitypes/install
 exec_prefix=${prefix}
 libdir=${exec_prefix}/lib
 includedir=${prefix}/include

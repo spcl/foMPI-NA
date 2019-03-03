@@ -21,8 +21,8 @@ int TPD_Get_hier_levels(MPI_Comm *comms, int max_num, MPI_Comm comm) {
     MPI_Abort( MPI_COMM_WORLD, 1 );
   }
 
-  int cliqueNum, cliqueRanks[64], cliqueSize;
-  MPE_FindCliqueFromName( myname, comm, 16, 64, &cliqueNum,
+  int cliqueNum, cliqueRanks[256], cliqueSize;
+  MPE_FindCliqueFromName( myname, comm, 16, 256, &cliqueNum,
                 &cliqueSize, cliqueRanks );
 
   int rank;

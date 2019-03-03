@@ -8,7 +8,7 @@
 
 #define _foMPI_UGNI_MEMORY_ALIGNMENT 64
 #define _foMPI_UGNI_GET_ALIGN 4 //sizeof(void*)
-#define _foMPI_BIND_ID_MULTIPLIER       100
+#define _foMPI_BIND_ID_MULTIPLIER       1000
 
 /*init configurations*/
 /*default PTAG index used for creating uGNI CDM (communication Domain Manager) */
@@ -37,7 +37,7 @@
 /*RDMA configurations*/
 /*TODO: try what combination of parameters is the fastest */
 /* CMDCreate: communication domain configuration*/
-#define _foMPI_DEFAULT_RDMA_MODES		( GNI_CDM_MODE_DUAL_EVENTS )
+#define _foMPI_DEFAULT_RDMA_MODES		( GNI_CDM_MODE_FMA_SHARED )
 /*
  * GNI_CDM_MODE_DUAL_EVENTS enables the inserction of a completion queue entry at both SRC and DST
  * GNI_CDM_MODE_FMA_SHARED enables the sharing of FMA descriptors (Usefule if more than one process is allocated on the same node)
