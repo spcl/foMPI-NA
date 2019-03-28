@@ -158,6 +158,8 @@ int foMPI_Wait(foMPI_Request *request, MPI_Status *status);
 int foMPI_Test(foMPI_Request *request, int *flag, MPI_Status *status);
 int foMPI_Waitany(int count, foMPI_Request array_of_requests[], int *index, MPI_Status *status);
 int foMPI_Testany(int count, foMPI_Request array_of_requests[], int *index, int *flag, MPI_Status *status);
+int foMPI_Testsome(int incount, foMPI_Request array_of_requests[], int *outcount, int array_of_indices[], MPI_Status array_of_statuses[]);
+
 int foMPI_Request_free(foMPI_Request *request);
 int foMPI_Start(foMPI_Request *request);
 
