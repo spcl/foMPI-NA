@@ -37,6 +37,7 @@ OBJS = \
 
 EXE = \
 	test_release \
+	test_release_req \
 	fortran_test_f77 \
 	fortran_test_f90 \
 	htor_test
@@ -133,6 +134,11 @@ fompi.mod module_fompi.o: module_fompi.f90
 test_release.o: test_release.c fompi.h
 
 test_release: test_release.o libfompi.a
+	${CC} ${CCFLAGS} ${LDFLAGS} $< -o $@ ${LIBS}
+
+test_release_req.o: test_release_req.c fompi.h
+
+test_release_req: test_release_req.o libfompi.a
 	${CC} ${CCFLAGS} ${LDFLAGS} $< -o $@ ${LIBS}
 
 fortran_test_f77.o: fortran_test_f77.f90 fompif.h

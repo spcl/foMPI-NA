@@ -9,6 +9,10 @@ static inline int _foMPI_Test_Wait(foMPI_Request *request, MPI_Status *status, i
 static inline int _foMPI_Testany_internal(int count, foMPI_Request array_of_requests[], int *index,
 		int *flag, MPI_Status *status);
 
+static inline int _foMPI_Testsome_internal(int incount, foMPI_Request array_of_requests[], 
+		int *outcount, int array_of_indices[], MPI_Status array_of_statuses[]);
+
+
 /*
  * int MPI_Wait(MPI_Request *request, MPI_Status *status)
  *
@@ -93,6 +97,16 @@ int foMPI_Waitany(int count, foMPI_Request array_of_requests[], int *index, MPI_
 	return test_res;
 }
 
+
+int foMPI_Waitsome(int incount, foMPI_Request array_of_requests[], int *outcount, int array_of_indices[], MPI_Status array_of_statuses[]){
+	*outcount=0;
+	int wait_res = MPI_SUCCESS;
+	while (*outcount==0){
+		wait_res = _foMPI_Testsome_internal(incount, array_of_requests, outcount, array_of_indices, array_of_statuses);
+	}
+	return wait_res;
+}
+
 /*
  * int MPI_Testany(int count, MPI_Request array_of_requests[], int *index, int *flag, MPI_Status *status)
  *
@@ -116,43 +130,10 @@ int foMPI_Testany(int count, foMPI_Request array_of_requests[], int *index, int 
 	return _foMPI_Testany_internal(count, array_of_requests, index, flag, status);
 }
 
-
 int foMPI_Testsome(int incount, foMPI_Request array_of_requests[], int *outcount, int array_of_indices[], MPI_Status array_of_statuses[]){
-
-	if (glob_info.rand_seed == 0) {
-		glob_info.rand_seed = (int) time(NULL);
-	}
-	int r = rand_r(&(glob_info.rand_seed)) % incount;
-	int i;
-	int flag;
-	int inactive = 0;
-	MPI_Status status;
-	*outcount = 0;	
-
-	for (i=0; i<incount; i++){
-		int randindex = (i + r) % incount;
-		if ( array_of_requests[randindex] == foMPI_REQUEST_NULL || (array_of_requests[randindex]->type == _foMPI_REQUEST_PERSISTENT
-				&& array_of_requests[randindex]->active == 0)) {
-			inactive++;
-			continue;
-		}
-		
-		foMPI_Test(&(array_of_requests[randindex]), &flag, &status);
-		if (flag == _foMPI_TRUE) {
-			array_of_indices[*outcount] = randindex;
-			array_of_statuses[*outcount] = status;
-			(*outcount)++;
-		}else {
-			foMPI_Start(&(array_of_requests[randindex]));
-		}
-	}
-
-	if (inactive == incount) {
-		*outcount = MPI_UNDEFINED;
-	}
-
-	return MPI_SUCCESS;
+	return _foMPI_Testsome_internal(incount, array_of_requests, outcount, array_of_indices, array_of_statuses);
 }
+
 
 /*
  * int MPI_Start(MPI_Request *request)
@@ -270,5 +251,45 @@ static inline int _foMPI_Test_Wait(foMPI_Request *request, MPI_Status *status, i
 	}
 	/*can return MPI_SUCCESS or MPI_ERR_IN_STATUS  */
 	return res;
+}
+
+int _foMPI_Testsome_internal(int incount, foMPI_Request array_of_requests[], int *outcount, int array_of_indices[], MPI_Status array_of_statuses[]){
+
+	if (glob_info.rand_seed == 0) {
+		glob_info.rand_seed = (int) time(NULL);
+	}
+	int r = rand_r(&(glob_info.rand_seed)) % incount;
+	int i;
+	int flag;
+	int inactive = 0;
+	int testres = 0;
+	int globalres = MPI_SUCCESS;
+	MPI_Status status;
+	*outcount = 0;	
+
+	for (i=0; i<incount; i++){
+		int randindex = (i + r) % incount;
+		if ( array_of_requests[randindex] == foMPI_REQUEST_NULL || (array_of_requests[randindex]->type == _foMPI_REQUEST_PERSISTENT
+				&& array_of_requests[randindex]->active == 0)) {
+			inactive++;
+			continue;
+		}
+		
+		testres = foMPI_Test(&(array_of_requests[randindex]), &flag, &status);
+		if (flag == _foMPI_TRUE) {
+			array_of_indices[*outcount] = randindex;
+			array_of_statuses[*outcount] = status;
+			(*outcount)++;
+			if (testres!=MPI_SUCCESS) globalres = MPI_ERR_IN_STATUS;
+		}else {
+			foMPI_Start(&(array_of_requests[randindex]));
+		}
+	}
+
+	if (inactive == incount) {
+		*outcount = MPI_UNDEFINED;
+	}
+
+	return MPI_SUCCESS;
 }
 
